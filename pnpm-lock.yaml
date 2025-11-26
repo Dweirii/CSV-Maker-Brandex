@@ -84,6 +84,9 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.25
+      '@types/papaparse':
+        specifier: ^5.5.0
+        version: 5.5.0
       '@types/react':
         specifier: ^19
         version: 19.2.7
@@ -1390,6 +1393,9 @@ packages:
 
   '@types/oracledb@6.5.2':
     resolution: {integrity: sha512-kK1eBS/Adeyis+3OlBDMeQQuasIDLUYXsi2T15ccNJ0iyUpQ4xDF7svFu3+bGVrI0CMBUclPciz+lsQR3JX3TQ==}
+
+  '@types/papaparse@5.5.0':
+    resolution: {integrity: sha512-GVs5iMQmUr54BAZYYkByv8zPofFxmyxUpISPb2oh8sayR3+1zbxasrOvoKiHJ/nnoq/uULuPsu1Lze1EkagVFg==}
 
   '@types/pg-pool@2.0.6':
     resolution: {integrity: sha512-TaAUE5rq2VQYxab5Ts7WZhKNmuN78Q6PiFonTDdpbx8a1H0M1vhy3rhiMjl+e2iHmogyMw7jZF4FrE6eJUy5HQ==}
@@ -5834,6 +5840,10 @@ snapshots:
       undici-types: 6.21.0
 
   '@types/oracledb@6.5.2':
+    dependencies:
+      '@types/node': 20.19.25
+
+  '@types/papaparse@5.5.0':
     dependencies:
       '@types/node': 20.19.25
 
