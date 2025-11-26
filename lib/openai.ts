@@ -36,7 +36,7 @@ Return ONLY a valid JSON object in this exact format:
 Do not include any markdown formatting or code blocks. Just the raw JSON.`
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",

@@ -26,18 +26,34 @@ function getContentType(fileName: string): string {
   return types[ext] || "application/octet-stream"
 }
 
+import { Readable } from "stream"
+
+// ... imports
+
 export async function uploadToBunnyCDN(
-  file: File | Buffer,
+  file: File | Buffer | Readable | ReadableStream,
   fileName: string,
   folder: "images" | "downloads" = "images"
 ): Promise<UploadResult> {
   try {
-    let fileBuffer: Buffer
+    let data: Buffer | Readable
+
     if (file instanceof File) {
+      // Convert File to Buffer (or stream if we wanted, but Buffer is fine for small files)
+      // Actually, let's try to stream File too if possible, but File.stream() is web API.
+      // For now, keep File as Buffer for backward compat, or convert to stream.
       const arrayBuffer = await file.arrayBuffer()
-      fileBuffer = Buffer.from(arrayBuffer)
+      data = Buffer.from(arrayBuffer)
+    } else if (Buffer.isBuffer(file)) {
+      data = file
+    } else if (file instanceof Readable) {
+      data = file
+    } else if (typeof (file as any).getReader === 'function') {
+      // Web ReadableStream
+      // @ts-ignore - Node types might not be fully up to date with global ReadableStream
+      data = Readable.fromWeb(file as any)
     } else {
-      fileBuffer = file
+      throw new Error("Invalid file type")
     }
 
     // Clean filename (remove special characters, keep only safe ones)
@@ -45,19 +61,31 @@ export async function uploadToBunnyCDN(
     const path = `${folder}/${safeFileName}`
     const uploadUrl = `https://storage.bunnycdn.com/${BUNNYCDN_STORAGE_ZONE}/${path}`
 
-    const fileSizeMB = fileBuffer.length / (1024 * 1024)
-    const timeoutMinutes = Math.max(5, Math.ceil(fileSizeMB / 100) + 5)
+    // Estimate size for timeout if possible
+    let fileSizeMB = 0
+    if (Buffer.isBuffer(data)) {
+      fileSizeMB = data.length / (1024 * 1024)
+    }
+    // If stream, we can't easily know size unless passed. We'll use a default generous timeout.
+
+    const timeoutMinutes = fileSizeMB > 0 ? Math.max(10, Math.ceil(fileSizeMB / 50) + 10) : 60
     const timeoutMs = timeoutMinutes * 60 * 1000
 
-    const response = await axios.put(uploadUrl, fileBuffer, {
+    console.log(`[BunnyCDN] Uploading ${fileName} ${fileSizeMB > 0 ? `(${fileSizeMB.toFixed(2)}MB)` : '(stream)'} with ${timeoutMinutes}min timeout`)
+
+    const startTime = Date.now()
+    const response = await axios.put(uploadUrl, data, {
       headers: {
         AccessKey: BUNNYCDN_API_KEY,
         "Content-Type": getContentType(fileName),
       },
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
-      timeout: timeoutMs, // 60 seconds timeout
+      timeout: timeoutMs,
     })
+
+    const uploadTime = ((Date.now() - startTime) / 1000).toFixed(2)
+    console.log(`[BunnyCDN] Uploaded ${fileName} in ${uploadTime}s`)
 
     if (response.status === 201 || response.status === 200) {
       const cdnUrl = `${BUNNYCDN_PULL_ZONE}/${path}`
