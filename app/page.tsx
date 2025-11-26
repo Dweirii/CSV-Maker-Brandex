@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Download, Loader2 } from "lucide-react"
 import type { FilePair, Category } from "@/types"
 import { downloadCSV } from "@/lib/csv-generator"
+import { mapWithConcurrency } from "@/lib/concurrency"
 
 export default function Home() {
   const [pairs, setPairs] = useState<FilePair[]>([])
@@ -74,71 +75,59 @@ export default function Home() {
         )
       }
 
-      const processedPairs: PromiseSettledResult<{
-        id: string
-        baseName: string
-        imageFile: { name: string; url: string }
-        downloadFile: { name: string; url: string }
-      }>[] = []
+      // Upload with concurrency pool (always keeps 5 uploads active)
+      const processedPairs = await mapWithConcurrency(
+        pairs,
+        5, // Concurrency limit
+        async (pair: FilePair) => {
+          try {
+            console.log(`Starting upload for pair: ${pair.baseName}`)
 
-      const BATCH_SIZE = 5
+            const [imageUrl, downloadUrl] = await Promise.all([
+              uploadFile(pair.imageFile, "images")
+                .then((url) => {
+                  updateProgress()
+                  return url
+                })
+                .catch((error) => {
+                  console.error(`Image upload failed for ${pair.imageFile.name}:`, error)
+                  throw new Error(`Image upload failed: ${error.message}`)
+                }),
+              uploadFile(pair.downloadFile, "downloads")
+                .then((url) => {
+                  updateProgress()
+                  return url
+                })
+                .catch((error) => {
+                  console.error(`Download upload failed for ${pair.downloadFile.name}:`, error)
+                  throw new Error(`Download upload failed: ${error.message}`)
+                }),
+            ])
 
-      for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
-        const batch = pairs.slice(i, i + BATCH_SIZE)
+            console.log(`Successfully uploaded pair: ${pair.baseName}`)
 
-        const batchResults = await Promise.allSettled(
-          batch.map(async (pair) => {
-            try {
-              console.log(`Starting upload for pair: ${pair.baseName}`)
-
-              const [imageUrl, downloadUrl] = await Promise.all([
-                uploadFile(pair.imageFile, "images")
-                  .then((url) => {
-                    updateProgress()
-                    return url
-                  })
-                  .catch((error) => {
-                    console.error(`Image upload failed for ${pair.imageFile.name}:`, error)
-                    throw new Error(`Image upload failed: ${error.message}`)
-                  }),
-                uploadFile(pair.downloadFile, "downloads")
-                  .then((url) => {
-                    updateProgress()
-                    return url
-                  })
-                  .catch((error) => {
-                    console.error(`Download upload failed for ${pair.downloadFile.name}:`, error)
-                    throw new Error(`Download upload failed: ${error.message}`)
-                  }),
-              ])
-
-              console.log(`Successfully uploaded pair: ${pair.baseName}`)
-
-              return {
-                id: pair.id,
-                baseName: pair.baseName,
-                imageFile: {
-                  name: pair.imageFile.name,
-                  url: imageUrl,
-                },
-                downloadFile: {
-                  name: pair.downloadFile.name,
-                  url: downloadUrl,
-                },
-              }
-            } catch (error) {
-              console.error(`Failed to upload pair ${pair.id}:`, error)
-              throw error
+            return {
+              id: pair.id,
+              baseName: pair.baseName,
+              imageFile: {
+                name: pair.imageFile.name,
+                url: imageUrl,
+              },
+              downloadFile: {
+                name: pair.downloadFile.name,
+                url: downloadUrl,
+              },
             }
-          })
-        )
-
-        processedPairs.push(...batchResults)
-      }
+          } catch (error) {
+            console.error(`Failed to upload pair ${pair.id}:`, error)
+            throw error
+          }
+        }
+      )
 
       // Filter out failed uploads and show errors
       const successfulPairs = processedPairs
-        .map((result, index) => {
+        .map((result: PromiseSettledResult<any>, index: number) => {
           if (result.status === "fulfilled") {
             return result.value
           } else {
@@ -149,7 +138,7 @@ export default function Home() {
             return null
           }
         })
-        .filter((pair): pair is NonNullable<typeof pair> => pair !== null)
+        .filter((pair: any): pair is NonNullable<typeof pair> => pair !== null)
 
       if (successfulPairs.length === 0) {
         throw new Error("All file uploads failed")

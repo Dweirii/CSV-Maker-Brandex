@@ -2,6 +2,7 @@ import { inngest } from "@/lib/inngest"
 import { generateProductMetadata } from "@/lib/openai"
 import { generateCSV } from "@/lib/csv-generator"
 import type { ProductData } from "@/types"
+import { mapWithConcurrency } from "@/lib/concurrency"
 
 interface BulkImportEvent {
   name: "bulk.import"
@@ -41,17 +42,12 @@ export const bulkImportProducts = inngest.createFunction(
     })
 
     const products = await step.run("generate-metadata", async () => {
-      const productData: ProductData[] = []
-
-      // Process in batches to control concurrency and avoid rate limits
-      const BATCH_SIZE = 10
-
-      for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
-        const batch = pairs.slice(i, i + BATCH_SIZE)
-
-        const batchResults = await Promise.all(batch.map(async (pair: typeof pairs[number], batchIndex: number) => {
-          const globalIndex = i + batchIndex
-          const upload = uploadResults[globalIndex]
+      // Process with high concurrency using pool
+      const results = await mapWithConcurrency(
+        pairs,
+        20, // High concurrency for gpt-4o-mini
+        async (pair: typeof pairs[number], index: number) => {
+          const upload = uploadResults[index]
 
           if (upload.errors.length > 0 || !upload.imageUrl || !upload.downloadUrl) {
             return {
@@ -104,12 +100,23 @@ export const bulkImportProducts = inngest.createFunction(
               error: error instanceof Error ? error.message : "Metadata generation failed",
             } as ProductData
           }
-        }))
+        }
+      )
 
-        productData.push(...batchResults)
-      }
-
-      return productData
+      // Extract values from settled results (mapWithConcurrency returns PromiseSettledResult[])
+      return results.map((r: PromiseSettledResult<ProductData>) => r.status === 'fulfilled' ? r.value : {
+        name: "Unknown",
+        description: "",
+        price: "0.20",
+        categoryId,
+        downloadUrl: "",
+        imageUrl: [],
+        keywords: [],
+        isFeatured: false,
+        isArchived: false,
+        status: "failed",
+        error: r.reason instanceof Error ? r.reason.message : "Unknown error"
+      } as ProductData)
     })
 
     const csvContent = await step.run("generate-csv", async () => {
@@ -120,8 +127,8 @@ export const bulkImportProducts = inngest.createFunction(
       jobId,
       status: "completed" as const,
       totalProducts: products.length,
-      successful: products.filter((p) => p.status === "success").length,
-      failed: products.filter((p) => p.status === "failed").length,
+      successful: products.filter((p: ProductData) => p.status === "success").length,
+      failed: products.filter((p: ProductData) => p.status === "failed").length,
       csvContent,
     }
 
