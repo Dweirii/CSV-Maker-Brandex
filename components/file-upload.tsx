@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { GoogleDrivePicker } from "@/components/GoogleDrivePicker"
 
 interface FileUploadProps {
   onPairsChange: (pairs: FilePair[]) => void
@@ -89,6 +90,39 @@ export function FileUpload({ onPairsChange, onErrorsChange }: FileUploadProps) {
             (Max 100 products = 200 files)
           </p>
         </div>
+
+        {/* Google Drive Alternative */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">Or</span>
+          </div>
+        </div>
+
+        <GoogleDrivePicker
+          onFilesSelected={(files) => {
+            // Process Google Drive files same as local uploads
+            const { pairs: newPairs, unmatched: newUnmatched, errors: newErrors } =
+              pairFiles(files)
+
+            const validation = validatePairs(newPairs)
+
+            if (!validation.valid) {
+              setErrors([validation.error || "Validation failed", ...newErrors])
+              onErrorsChange([validation.error || "Validation failed", ...newErrors])
+            } else {
+              setErrors(newErrors)
+              onErrorsChange(newErrors)
+            }
+
+            setPairs(newPairs)
+            setUnmatched(newUnmatched)
+            onPairsChange(newPairs)
+          }}
+          disabled={false}
+        />
 
         {/* Critical Errors */}
         {errors.length > 0 && (
