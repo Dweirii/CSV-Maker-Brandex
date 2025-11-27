@@ -21,6 +21,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Set dummy environment variables for build (will be overridden at runtime)
+ENV OPENAI_API_KEY="sk-dummy-key-for-build"
+ENV BUNNYCDN_API_KEY="dummy-key"
+ENV BUNNYCDN_STORAGE_ZONE="dummy-zone"
+ENV BUNNYCDN_PULL_ZONE="https://dummy.b-cdn.net"
+ENV INNGEST_SIGNING_KEY="dummy-key"
+ENV INNGEST_EVENT_KEY="dummy-key"
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
