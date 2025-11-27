@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { uploadToBunnyCDN } from "@/lib/bunnycdn"
 
+export const maxDuration = 900; // 15 minutes per file
+
+
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || ""

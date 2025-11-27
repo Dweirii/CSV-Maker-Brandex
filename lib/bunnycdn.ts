@@ -62,8 +62,8 @@ export async function uploadToBunnyCDN(
       fileSizeMB = data.length / (1024 * 1024)
     }
     // If stream, we can't easily know size unless passed. We'll use a default generous timeout.
-
-    const timeoutMinutes = fileSizeMB > 0 ? Math.max(10, Math.ceil(fileSizeMB / 50) + 10) : 60
+    // Increased to 120 minutes (2 hours) to support large files on slow connections
+    const timeoutMinutes = fileSizeMB > 0 ? Math.max(10, Math.ceil(fileSizeMB / 50) + 10) : 120
     const timeoutMs = timeoutMinutes * 60 * 1000
 
     console.log(`[BunnyCDN] Uploading ${fileName} ${fileSizeMB > 0 ? `(${fileSizeMB.toFixed(2)}MB)` : '(stream)'} with ${timeoutMinutes}min timeout`)
