@@ -15,7 +15,7 @@ GOOGLE_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxx
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 
 # NEW - Add this for the Picker API
-NEXT_PUBLIC_GOOGLE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ### How to Get the API Key:
@@ -80,7 +80,7 @@ Go to **APIs & Services** > **Library** and search for each API to enable it.
    - `GOOGLE_CLIENT_ID`
    - `GOOGLE_CLIENT_SECRET`
    - `GOOGLE_REDIRECT_URI`
-   - `NEXT_PUBLIC_GOOGLE_API_KEY`
+   - `GOOGLE_API_KEY`
 
 2. Restart your dev server:
    ```bash
@@ -116,7 +116,7 @@ Set the environment variables on Fly.io:
 fly secrets set GOOGLE_CLIENT_ID="xxxxxxxxxxxxx.apps.googleusercontent.com"
 fly secrets set GOOGLE_CLIENT_SECRET="xxxxxxxxxxxxxxxxxxxx"
 fly secrets set GOOGLE_REDIRECT_URI="https://yourdomain.com/api/auth/google/callback"
-fly secrets set NEXT_PUBLIC_GOOGLE_API_KEY="xxxxxxxxxxxxxxxxxxxxxxxx"
+fly secrets set GOOGLE_API_KEY="xxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 ### Update Google Cloud Console
@@ -149,7 +149,7 @@ fly secrets set NEXT_PUBLIC_GOOGLE_API_KEY="xxxxxxxxxxxxxxxxxxxxxxxx"
 
 ### "Google Picker fails to load"
 - Check browser console for errors
-- Make sure `NEXT_PUBLIC_GOOGLE_API_KEY` is set (note the NEXT_PUBLIC prefix)
+- Make sure `GOOGLE_API_KEY` is set
 - Make sure Picker API is enabled in Google Console
 
 ### "Failed to download files from Google Drive"

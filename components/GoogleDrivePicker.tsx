@@ -80,6 +80,26 @@ export function GoogleDrivePicker({ onFilesSelected, disabled }: GoogleDrivePick
     }
 
     /**
+     * Fetches Google Picker configuration (API key, App ID) from the server
+     */
+    const fetchPickerConfig = async () => {
+        const response = await fetch('/api/google/config')
+
+        if (!response.ok) {
+            let message = 'Failed to load Google Drive configuration'
+            try {
+                const data = await response.json()
+                message = data.error || message
+            } catch {
+                // ignore JSON parsing errors – use default message
+            }
+            throw new Error(message)
+        }
+
+        return response.json() as Promise<{ apiKey: string; appId?: string }>
+    }
+
+    /**
    * Opens the Google Picker to select files
    */
     const handleOpenPicker = async () => {
@@ -94,12 +114,11 @@ export function GoogleDrivePicker({ onFilesSelected, disabled }: GoogleDrivePick
                 toast.dismiss('picker-loading')
             }
 
-            // Get API key
-            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY
-
-            if (!apiKey) {
-                throw new Error('Google API key not configured')
-            }
+            // Get API key + app ID from server (allows runtime secrets)
+            toast.loading('Preparing Google Drive picker...', { id: 'picker-config' })
+            const { apiKey, appId } = await fetchPickerConfig().finally(() => {
+                toast.dismiss('picker-config')
+            })
 
             // Get access token from server
             toast.loading('Getting access token...', { id: 'getting-token' })
@@ -123,8 +142,11 @@ export function GoogleDrivePicker({ onFilesSelected, disabled }: GoogleDrivePick
                 accessToken,
                 apiKey,
                 handleFilesSelected,
-                () => {
-                    console.log('[GoogleDrivePicker] Picker cancelled')
+                {
+                    appId,
+                    onCancel: () => {
+                        console.log('[GoogleDrivePicker] Picker cancelled')
+                    },
                 }
             )
         } catch (error) {

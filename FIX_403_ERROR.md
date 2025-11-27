@@ -57,8 +57,8 @@ GOOGLE_CLIENT_ID=xxxxxxxxxxxxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxx
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 
-# Add this if missing
-NEXT_PUBLIC_GOOGLE_API_KEY=your_api_key_here
+# Add this if missing (used server-side & sent to browser at runtime)
+GOOGLE_API_KEY=your_api_key_here
 ```
 
 ### Step 3: Reconnect to Google Drive
@@ -97,12 +97,10 @@ Look for these messages:
 
 ### Verify Environment Variable
 
-In browser console, type:
-```javascript
-console.log(process.env.NEXT_PUBLIC_GOOGLE_API_KEY)
-```
+Visit `http://localhost:3000/api/google/config` in the browser.
 
-Should show your API key (not undefined).
+- ✅ You should see `{ "apiKey": "xxxx", "appId": "..." }`
+- ❌ If you get a 500 error, double-check `GOOGLE_API_KEY` is set and rebuild.
 
 ### Clear Cookies and Reconnect
 

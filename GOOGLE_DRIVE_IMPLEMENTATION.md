@@ -138,7 +138,7 @@ The upload interface now has two options:
 
 Add to `.env.local`:
 ```bash
-NEXT_PUBLIC_GOOGLE_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_api_key_here
 ```
 
 **Get this key:**
@@ -184,7 +184,7 @@ pnpm dev
 fly secrets set GOOGLE_CLIENT_ID="your_id"
 fly secrets set GOOGLE_CLIENT_SECRET="your_secret"
 fly secrets set GOOGLE_REDIRECT_URI="https://yourdomain.com/api/auth/google/callback"
-fly secrets set NEXT_PUBLIC_GOOGLE_API_KEY="your_key"
+fly secrets set GOOGLE_API_KEY="your_key"
 ```
 
 ### Update Google Console:

@@ -88,9 +88,12 @@ export function createPicker(
     accessToken: string,
     apiKey: string,
     onSelect: (files: DriveFile[]) => void,
-    onCancel?: () => void
+    options?: {
+        onCancel?: () => void
+        appId?: string
+    }
 ): google.picker.Picker {
-    const picker = new google.picker.PickerBuilder()
+    const pickerBuilder = new google.picker.PickerBuilder()
         // Add Drive view with multi-select enabled
         .addView(
             new google.picker.DocsView()
@@ -104,8 +107,12 @@ export function createPicker(
         .setOAuthToken(accessToken)
         // Set API key
         .setDeveloperKey(apiKey)
-        // Set app ID (client ID without the .apps.googleusercontent.com suffix)
-        .setAppId(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.split('.')[0] || '')
+
+    if (options?.appId) {
+        pickerBuilder.setAppId(options.appId)
+    }
+
+    const picker = pickerBuilder
         // Set callback
         .setCallback((data: google.picker.ResponseObject) => {
             if (data.action === google.picker.Action.PICKED) {
@@ -122,7 +129,7 @@ export function createPicker(
                 onSelect(files)
             } else if (data.action === google.picker.Action.CANCEL) {
                 console.log('[Google Picker] Picker cancelled')
-                onCancel?.()
+                options?.onCancel?.()
             }
         })
         // Set locale and title

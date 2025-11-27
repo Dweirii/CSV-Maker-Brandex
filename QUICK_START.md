@@ -5,7 +5,7 @@
 ### Step 1: Add Environment Variable
 Add this to `.env.local`:
 ```bash
-NEXT_PUBLIC_GOOGLE_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_api_key_here
 ```
 
 **Get it here:** [Google Cloud Console > Credentials](https://console.cloud.google.com/apis/credentials)
@@ -66,7 +66,7 @@ pnpm dev
 fly secrets set GOOGLE_CLIENT_ID="your_id.apps.googleusercontent.com"
 fly secrets set GOOGLE_CLIENT_SECRET="your_secret"
 fly secrets set GOOGLE_REDIRECT_URI="https://yourdomain.com/api/auth/google/callback"
-fly secrets set NEXT_PUBLIC_GOOGLE_API_KEY="your_key"
+fly secrets set GOOGLE_API_KEY="your_key"
 
 # Deploy
 fly deploy
@@ -126,7 +126,7 @@ Everything else is IDENTICAL!
 → Check Google Console redirect URIs match `.env.local` EXACTLY
 
 ### "Picker fails to load"
-→ Make sure `NEXT_PUBLIC_GOOGLE_API_KEY` is set (note the prefix!)  
+→ Make sure `GOOGLE_API_KEY` is set  
 → Check Picker API is enabled in Google Console
 
 ### "Not authenticated"
