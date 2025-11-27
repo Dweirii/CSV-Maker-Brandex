@@ -7,7 +7,7 @@ import { CategorySelector } from "@/components/category-selector"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Download, Loader2 } from "lucide-react"
+import { Download, Loader2, CheckCircle } from "lucide-react"
 import type { FilePair, Category } from "@/types"
 import { downloadCSV } from "@/lib/csv-generator"
 import { mapWithConcurrency } from "@/lib/concurrency"
@@ -246,94 +246,109 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">CSV Products Maker</h1>
-        <p className="text-muted-foreground">
-          Upload product files, generate metadata, and export CSV for Brandex-Admin
+    <div className="container mx-auto p-6 max-w-5xl space-y-8">
+      <div className="space-y-2 text-center">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+          CSV Products Maker
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          Streamline your product import process. Upload files, pair them automatically, and generate CSVs for Brandex-Admin.
         </p>
       </div>
 
-      <CategorySelector onCategoryChange={setCategory} />
+      <div className="grid gap-8 md:grid-cols-[1fr_350px] items-start">
+        <div className="space-y-8">
+          <FileUpload onPairsChange={setPairs} onErrorsChange={setErrors} />
+        </div>
 
-      <FileUpload onPairsChange={setPairs} onErrorsChange={setErrors} />
+        <div className="space-y-6 sticky top-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuration</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CategorySelector onCategoryChange={setCategory} />
+            </CardContent>
+          </Card>
 
-      {pairs.length > 0 && category && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Ready to Import</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span>Products: {pairs.length}</span>
-                <span>Category: {category.name}</span>
-              </div>
-              {isProcessing && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Processing...</span>
-                    <span>{progress}%</span>
+          {pairs.length > 0 && category && (
+            <Card className="border-primary/20 shadow-lg">
+              <CardHeader className="bg-primary/5 pb-4">
+                <CardTitle className="flex items-center gap-2 text-primary">
+                  <CheckCircle className="h-5 w-5" />
+                  Ready to Import
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground">Products</span>
+                    <span className="font-bold text-lg">{pairs.length}</span>
                   </div>
-                  <Progress value={progress} />
+                  <div className="flex items-center justify-between text-sm p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground">Category</span>
+                    <span className="font-medium">{category.name}</span>
+                  </div>
+
+                  {isProcessing && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-primary">Processing...</span>
+                        <span className="text-muted-foreground">{progress}%</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={handleStartImport}
-                disabled={isProcessing || pairs.length === 0 || !category}
-                className="flex-1"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Start Import"
-                )}
-              </Button>
+                <div className="flex flex-col gap-3">
+                  <Button
+                    onClick={handleStartImport}
+                    disabled={isProcessing || pairs.length === 0 || !category}
+                    className="w-full h-12 text-lg font-semibold shadow-md transition-all hover:scale-[1.02]"
+                    size="lg"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Start Import"
+                    )}
+                  </Button>
 
-              {csvContent && (
-                <Button onClick={handleDownloadCSV} variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download CSV
-                </Button>
-              )}
-            </div>
+                  {csvContent && (
+                    <Button onClick={handleDownloadCSV} variant="outline" className="w-full">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download CSV
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            {errors.length > 0 && (
-              <div className="text-sm text-destructive">
-                <p className="font-medium">Warnings:</p>
-                <ul className="list-disc list-inside">
-                  {errors.map((error, i) => (
-                    <li key={i}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {jobId && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Import Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Job ID: {jobId}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Your import is processing in the background. Check Inngest dashboard for progress.
-              The CSV will be available when complete.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+          {jobId && (
+            <Card className="bg-muted/50">
+              <CardHeader>
+                <CardTitle className="text-base">Import Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Job ID:</span>
+                    <span className="font-mono text-xs">{jobId.slice(0, 8)}...</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Your import is processing in the background. Check Inngest dashboard for progress.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

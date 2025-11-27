@@ -15,25 +15,24 @@ export async function generateProductMetadata(
 ): Promise<MetadataResult> {
   try {
     const prompt = `You are an expert e-commerce product description writer. Generate SEO-friendly product metadata for a digital product.
+                    Product Details:
+                    - Download File: ${downloadFileName}
+                    - Category: ${categoryName}
+                    - Image URL: ${imageUrl}
 
-Product Details:
-- Download File: ${downloadFileName}
-- Category: ${categoryName}
-- Image URL: ${imageUrl}
+                    Generate:
+                    1. A compelling product name (max 80 characters, no special characters except - and _)
+                    2. A detailed product description (150-300 words, SEO-optimized)
+                    3. 5-10 relevant keywords (comma-separated, related to the product and category)
 
-Generate:
-1. A compelling product name (max 80 characters, no special characters except - and _)
-2. A detailed product description (150-300 words, SEO-optimized)
-3. 5-10 relevant keywords (comma-separated, related to the product and category)
-
-Return ONLY a valid JSON object in this exact format:
-{
-  "name": "Product Name Here",
-  "description": "Detailed description here...",
-  "keywords": ["keyword1", "keyword2", "keyword3"]
-}
-
-Do not include any markdown formatting or code blocks. Just the raw JSON.`
+                    Return ONLY a valid JSON object in this exact format:
+                    {
+                      "name": "Product Name Here",
+                      "description": "Detailed description here...",
+                      "keywords": ["keyword1", "keyword2", "keyword3"]
+                    }
+                      
+                    Do not include any markdown formatting or code blocks. Just the raw JSON.`
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",

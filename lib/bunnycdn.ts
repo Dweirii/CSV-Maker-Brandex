@@ -28,8 +28,6 @@ function getContentType(fileName: string): string {
 
 import { Readable } from "stream"
 
-// ... imports
-
 export async function uploadToBunnyCDN(
   file: File | Buffer | Readable | ReadableStream,
   fileName: string,
@@ -39,9 +37,6 @@ export async function uploadToBunnyCDN(
     let data: Buffer | Readable
 
     if (file instanceof File) {
-      // Convert File to Buffer (or stream if we wanted, but Buffer is fine for small files)
-      // Actually, let's try to stream File too if possible, but File.stream() is web API.
-      // For now, keep File as Buffer for backward compat, or convert to stream.
       const arrayBuffer = await file.arrayBuffer()
       data = Buffer.from(arrayBuffer)
     } else if (Buffer.isBuffer(file)) {
