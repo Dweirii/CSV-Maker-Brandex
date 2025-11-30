@@ -16,19 +16,19 @@ export async function generateProductMetadata(
   try {
     const prompt = `You are an expert e-commerce product description writer. Generate SEO-friendly product metadata for a digital product.
                     Product Details:
-                    - Download File: ${downloadFileName}
+                    - Download File: ${downloadFileName.startsWith("http") ? downloadFileName : `https://${downloadFileName}`}
                     - Category: ${categoryName}
-                    - Image URL: ${imageUrl}
+                    - Image URL: ${imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`}
 
                     Generate:
                     1. A compelling product name (max 80 characters, no special characters except - and _)
-                    2. A detailed product description (150-300 words, SEO-optimized)
+                    2. A concise product description (50-100 words, SEO-optimized)
                     3. 5-10 relevant keywords (comma-separated, related to the product and category)
 
                     Return ONLY a valid JSON object in this exact format:
                     {
                       "name": "Product Name Here",
-                      "description": "Detailed description here...",
+                      "description": "Concise description here...",
                       "keywords": ["keyword1", "keyword2", "keyword3"]
                     }
                       
