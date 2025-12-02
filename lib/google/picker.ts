@@ -108,7 +108,7 @@ export function createPicker(
                 .setMimeTypes(ACCEPTED_MIME_TYPES.join(','))
                 .setMode(google.picker.DocsViewMode.LIST)
         )
-        // Enable multi-select (up to 100 files - matching your file limit)
+        // Enable multi-select (limit validated client-side based on category)
         .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
         // Set OAuth token
         .setOAuthToken(accessToken)
@@ -152,13 +152,14 @@ export function createPicker(
 
 /**
  * Validates selected files against business rules
- * - Checks file count limit (max 200 files = 100 pairs)
+ * - Checks file count limit (dynamic based on category)
  * - Validates file types
  * 
  * @param files - Selected Drive files
+ * @param maxFiles - Maximum number of files allowed (default: 200)
  * @returns Validation result with error message if invalid
  */
-export function validateSelectedFiles(files: DriveFile[]): {
+export function validateSelectedFiles(files: DriveFile[], maxFiles: number = 200): {
     valid: boolean
     error?: string
 } {
@@ -166,10 +167,10 @@ export function validateSelectedFiles(files: DriveFile[]): {
         return { valid: false, error: 'No files selected' }
     }
 
-    if (files.length > 200) {
+    if (files.length > maxFiles) {
         return {
             valid: false,
-            error: `Too many files selected. Maximum is 200 (100 pairs), you selected ${files.length}`,
+            error: `Too many files selected. Maximum is ${maxFiles}, you selected ${files.length}`,
         }
     }
 

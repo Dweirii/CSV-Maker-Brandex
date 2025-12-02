@@ -9,9 +9,20 @@ const SINGLE_FILE_CATEGORY_IDS = [
   "c302954a-6cd2-43a7-9916-16d9252f754c", // MOTION LIBRARY
 ]
 
+// File limits per category
+const IMAGES_CATEGORY_ID = "6214c586-a7c7-4f71-98ab-e1bc147a07f4"
+const IMAGES_MAX_FILES = 1000 // Higher limit for IMAGES category
+const DEFAULT_MAX_FILES = 100 // Default limit for other categories
+
 export function isSingleFileCategory(category: Category | null): boolean {
   if (!category) return false
   return SINGLE_FILE_CATEGORY_IDS.includes(category.id)
+}
+
+export function getMaxFilesForCategory(category: Category | null): number {
+  if (!category) return DEFAULT_MAX_FILES
+  if (category.id === IMAGES_CATEGORY_ID) return IMAGES_MAX_FILES
+  return DEFAULT_MAX_FILES
 }
 
 function getBaseName(filename: string): string {
@@ -146,10 +157,11 @@ export function validatePairs(
     return { valid: false, error: "No file pairs found" }
   }
 
-  if (pairs.length > 100) {
+  const maxFiles = getMaxFilesForCategory(category)
+  if (pairs.length > maxFiles) {
     return {
       valid: false,
-      error: `Too many products. Maximum is 100, found ${pairs.length}`,
+      error: `Too many products. Maximum is ${maxFiles}, found ${pairs.length}`,
     }
   }
 

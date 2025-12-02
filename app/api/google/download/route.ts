@@ -52,9 +52,11 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        if (files.length > 200) {
+        // Increased limit to support IMAGES category (1000 files)
+        // Other categories are validated client-side before reaching here
+        if (files.length > 1000) {
             return NextResponse.json(
-                { error: 'Too many files. Maximum is 200 files per request.' },
+                { error: 'Too many files. Maximum is 1000 files per request.' },
                 { status: 400 }
             )
         }

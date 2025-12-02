@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Cloud, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { loadPickerApi, createPicker, validateSelectedFiles, type DriveFile } from "@/lib/google/picker"
+import { getMaxFilesForCategory, isSingleFileCategory } from "@/lib/file-pairing"
+import type { Category } from "@/types"
 import { toast } from "react-hot-toast"
 
 interface GoogleDrivePickerProps {
     onFilesSelected: (files: File[]) => void
     disabled?: boolean
+    category?: Category | null
 }
 
 /**
@@ -28,7 +31,7 @@ interface GoogleDrivePickerProps {
  * Usage:
  * <GoogleDrivePicker onFilesSelected={(files) => console.log(files)} />
  */
-export function GoogleDrivePicker({ onFilesSelected, disabled }: GoogleDrivePickerProps) {
+export function GoogleDrivePicker({ onFilesSelected, disabled, category }: GoogleDrivePickerProps) {
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [isCheckingAuth, setIsCheckingAuth] = useState(true)
     const [isDownloading, setIsDownloading] = useState(false)
@@ -163,8 +166,13 @@ export function GoogleDrivePicker({ onFilesSelected, disabled }: GoogleDrivePick
      */
     const handleFilesSelected = async (driveFiles: DriveFile[]) => {
         try {
+            // Calculate max files based on category
+            const maxFiles = category 
+                ? (getMaxFilesForCategory(category) * (isSingleFileCategory(category) ? 1 : 2))
+                : 200
+            
             // Validate selection
-            const validation = validateSelectedFiles(driveFiles)
+            const validation = validateSelectedFiles(driveFiles, maxFiles)
             if (!validation.valid) {
                 toast.error(validation.error || 'Invalid file selection')
                 return

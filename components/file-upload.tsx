@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { UploadCloud, X, CheckCircle, AlertCircle } from "lucide-react"
-import { pairFiles, validatePairs } from "@/lib/file-pairing"
+import { pairFiles, validatePairs, getMaxFilesForCategory, isSingleFileCategory } from "@/lib/file-pairing"
 import type { FilePair, Category } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -51,6 +51,9 @@ export function FileUpload({ onPairsChange, onErrorsChange, category }: FileUplo
     [onPairsChange, onErrorsChange, category]
   )
 
+  const maxFiles = category 
+    ? (getMaxFilesForCategory(category) * (isSingleFileCategory(category) ? 1 : 2))
+    : 200
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -58,7 +61,7 @@ export function FileUpload({ onPairsChange, onErrorsChange, category }: FileUplo
       "video/*": [".mp4", ".mov", ".avi", ".webm", ".mkv", ".m4v"],
       "application/*": [".psd", ".zip", ".rar", ".pdf"],
     },
-    maxFiles: 200, // 100 products = 200 files (or 100 single files for single-file categories)
+    maxFiles, // Dynamic based on category
   })
 
   const removePair = (pairId: string) => {
@@ -96,9 +99,11 @@ export function FileUpload({ onPairsChange, onErrorsChange, category }: FileUplo
               ? "Upload images or videos (one file per product)."
               : "Upload pairs of images and download files."}
             <br />
-            {category && (category.name === "IMAGES" || category.name === "MOTION LIBRARY")
-              ? "(Max 100 files)"
-              : "(Max 100 products = 200 files)"}
+            {category && category.name === "IMAGES"
+              ? `(Max ${getMaxFilesForCategory(category)} files)`
+              : category && category.name === "MOTION LIBRARY"
+              ? `(Max ${getMaxFilesForCategory(category)} files)`
+              : `(Max ${getMaxFilesForCategory(category!)} products = ${getMaxFilesForCategory(category!) * 2} files)`}
           </p>
         </div>
 
@@ -113,6 +118,7 @@ export function FileUpload({ onPairsChange, onErrorsChange, category }: FileUplo
         </div>
 
         <GoogleDrivePicker
+          category={category}
           onFilesSelected={(files) => {
             // Process Google Drive files same as local uploads (with category context)
             const { pairs: newPairs, unmatched: newUnmatched, errors: newErrors } =
@@ -184,7 +190,7 @@ export function FileUpload({ onPairsChange, onErrorsChange, category }: FileUplo
                 Ready for Import
               </h3>
               <Badge variant="secondary" className="text-sm px-3 py-1">
-                {pairs.length} / 100 {category && (category.name === "IMAGES" || category.name === "MOTION LIBRARY") ? "Files" : "Pairs"}
+                {pairs.length} / {category ? getMaxFilesForCategory(category) : 100} {category && (category.name === "IMAGES" || category.name === "MOTION LIBRARY") ? "Files" : "Pairs"}
               </Badge>
             </div>
 
