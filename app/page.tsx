@@ -11,6 +11,7 @@ import { Download, Loader2, CheckCircle } from "lucide-react"
 import type { FilePair, Category } from "@/types"
 import { downloadCSV } from "@/lib/csv-generator"
 import { mapWithConcurrency } from "@/lib/concurrency"
+import { isSingleFileCategory } from "@/lib/file-pairing"
 
 export default function Home() {
   const [pairs, setPairs] = useState<FilePair[]>([])
@@ -59,11 +60,13 @@ export default function Home() {
 
     try {
       // Step 1: Upload all files to BunnyCDN
+      const isSingleFile = isSingleFileCategory(category)
+      const totalFiles = isSingleFile ? pairs.length : pairs.length * 2 // Single file per product or 2 files per pair
+      
       setProgress(5)
-      toast.loading(`Uploading files to BunnyCDN (0/${pairs.length * 2})...`, { id: "uploading" })
+      toast.loading(`Uploading files to BunnyCDN (0/${totalFiles})...`, { id: "uploading" })
 
       let completedUploads = 0
-      const totalFiles = pairs.length * 2 // Each pair has 2 files
 
       const updateProgress = () => {
         completedUploads++
@@ -83,40 +86,73 @@ export default function Home() {
           try {
             console.log(`Starting upload for pair: ${pair.baseName}`)
 
-            const [imageUrl, downloadUrl] = await Promise.all([
-              uploadFile(pair.imageFile, "images")
+            if (isSingleFile) {
+              // For single-file categories, upload once and use same URL for both preview and download
+              const fileUrl = await uploadFile(pair.imageFile, "images")
                 .then((url) => {
                   updateProgress()
                   return url
                 })
                 .catch((error) => {
-                  console.error(`Image upload failed for ${pair.imageFile.name}:`, error)
-                  throw new Error(`Image upload failed: ${error.message}`)
-                }),
-              uploadFile(pair.downloadFile, "downloads")
-                .then((url) => {
-                  updateProgress()
-                  return url
+                  console.error(`File upload failed for ${pair.imageFile.name}:`, error)
+                  throw new Error(`File upload failed: ${error.message}`)
                 })
-                .catch((error) => {
-                  console.error(`Download upload failed for ${pair.downloadFile.name}:`, error)
-                  throw new Error(`Download upload failed: ${error.message}`)
-                }),
-            ])
 
-            console.log(`Successfully uploaded pair: ${pair.baseName}`)
+              console.log(`Successfully uploaded file: ${pair.baseName}`)
 
-            return {
-              id: pair.id,
-              baseName: pair.baseName,
-              imageFile: {
-                name: pair.imageFile.name,
-                url: imageUrl,
-              },
-              downloadFile: {
-                name: pair.downloadFile.name,
-                url: downloadUrl,
-              },
+              return {
+                id: pair.id,
+                baseName: pair.baseName,
+                imageFile: {
+                  name: pair.imageFile.name,
+                  url: fileUrl,
+                },
+                downloadFile: {
+                  name: pair.imageFile.name,
+                  url: fileUrl, // Same URL for preview and download
+                },
+              }
+            } else {
+              // Original logic for paired categories
+              if (!pair.downloadFile) {
+                throw new Error("Download file is required for paired categories")
+              }
+
+              const [imageUrl, downloadUrl] = await Promise.all([
+                uploadFile(pair.imageFile, "images")
+                  .then((url) => {
+                    updateProgress()
+                    return url
+                  })
+                  .catch((error) => {
+                    console.error(`Image upload failed for ${pair.imageFile.name}:`, error)
+                    throw new Error(`Image upload failed: ${error.message}`)
+                  }),
+                uploadFile(pair.downloadFile, "downloads")
+                  .then((url) => {
+                    updateProgress()
+                    return url
+                  })
+                  .catch((error) => {
+                    console.error(`Download upload failed for ${pair.downloadFile!.name}:`, error)
+                    throw new Error(`Download upload failed: ${error.message}`)
+                  }),
+              ])
+
+              console.log(`Successfully uploaded pair: ${pair.baseName}`)
+
+              return {
+                id: pair.id,
+                baseName: pair.baseName,
+                imageFile: {
+                  name: pair.imageFile.name,
+                  url: imageUrl,
+                },
+                downloadFile: {
+                  name: pair.downloadFile.name,
+                  url: downloadUrl,
+                },
+              }
             }
           } catch (error) {
             console.error(`Failed to upload pair ${pair.id}:`, error)
@@ -258,7 +294,7 @@ export default function Home() {
 
       <div className="grid gap-8 md:grid-cols-[1fr_350px] items-start">
         <div className="space-y-8">
-          <FileUpload onPairsChange={setPairs} onErrorsChange={setErrors} />
+          <FileUpload onPairsChange={setPairs} onErrorsChange={setErrors} category={category} />
         </div>
 
         <div className="space-y-6 sticky top-6">

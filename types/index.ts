@@ -2,7 +2,7 @@ export interface FilePair {
     id: string
     baseName: string
     imageFile: File
-    downloadFile: File
+    downloadFile?: File // Optional for single-file categories (IMAGES, MOTION LIBRARY)
     imageUrl?: string
     downloadUrl?: string
   }

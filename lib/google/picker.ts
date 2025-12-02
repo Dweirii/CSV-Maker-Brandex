@@ -19,7 +19,7 @@ export interface DriveFile {
 
 /**
  * Accepted file MIME types for product imports
- * Images for product display, archives and PDFs for download files
+ * Images for product display, videos for motion library, archives and PDFs for download files
  */
 const ACCEPTED_MIME_TYPES = [
     // Images
@@ -27,6 +27,13 @@ const ACCEPTED_MIME_TYPES = [
     'image/png',
     'image/gif',
     'image/webp',
+    // Videos
+    'video/mp4',
+    'video/quicktime',
+    'video/x-msvideo',
+    'video/webm',
+    'video/x-matroska',
+    'video/x-m4v',
     // Archives
     'application/zip',
     'application/x-rar-compressed',
@@ -174,7 +181,7 @@ export function validateSelectedFiles(files: DriveFile[]): {
     if (invalidFiles.length > 0) {
         return {
             valid: false,
-            error: `${invalidFiles.length} file(s) have unsupported types. Only images, PDFs, and archives are allowed.`,
+            error: `${invalidFiles.length} file(s) have unsupported types. Only images, videos, PDFs, and archives are allowed.`,
         }
     }
 

@@ -22,6 +22,12 @@ function getContentType(fileName: string): string {
     zip: "application/zip",
     rar: "application/x-rar-compressed",
     pdf: "application/pdf",
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    avi: "video/x-msvideo",
+    webm: "video/webm",
+    mkv: "video/x-matroska",
+    m4v: "video/x-m4v",
   }
   return types[ext] || "application/octet-stream"
 }

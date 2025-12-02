@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { UploadCloud, X, CheckCircle, AlertCircle } from "lucide-react"
 import { pairFiles, validatePairs } from "@/lib/file-pairing"
-import type { FilePair } from "@/types"
+import type { FilePair, Category } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -14,25 +14,31 @@ import { GoogleDrivePicker } from "@/components/GoogleDrivePicker"
 interface FileUploadProps {
   onPairsChange: (pairs: FilePair[]) => void
   onErrorsChange: (errors: string[]) => void
+  category?: Category | null
 }
 
-export function FileUpload({ onPairsChange, onErrorsChange }: FileUploadProps) {
+export function FileUpload({ onPairsChange, onErrorsChange, category }: FileUploadProps) {
   const [pairs, setPairs] = useState<FilePair[]>([])
   const [unmatched, setUnmatched] = useState<File[]>([])
   const [errors, setErrors] = useState<string[]>([])
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      // Pair files instantly
+      // Pair files instantly (with category context)
       const { pairs: newPairs, unmatched: newUnmatched, errors: newErrors } =
-        pairFiles(acceptedFiles)
+        pairFiles(acceptedFiles, category || null)
 
-      // Validate pairs
-      const validation = validatePairs(newPairs)
+      // Validate pairs (with category context and unmatched files)
+      const validation = validatePairs(newPairs, category || null, newUnmatched)
 
       if (!validation.valid) {
         setErrors([validation.error || "Validation failed", ...newErrors])
         onErrorsChange([validation.error || "Validation failed", ...newErrors])
+        // Don't set pairs if validation fails
+        setPairs([])
+        setUnmatched(newUnmatched)
+        onPairsChange([])
+        return
       } else {
         setErrors(newErrors)
         onErrorsChange(newErrors)
@@ -42,16 +48,17 @@ export function FileUpload({ onPairsChange, onErrorsChange }: FileUploadProps) {
       setUnmatched(newUnmatched)
       onPairsChange(newPairs)
     },
-    [onPairsChange, onErrorsChange]
+    [onPairsChange, onErrorsChange, category]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+      "video/*": [".mp4", ".mov", ".avi", ".webm", ".mkv", ".m4v"],
       "application/*": [".psd", ".zip", ".rar", ".pdf"],
     },
-    maxFiles: 200, // 100 products = 200 files
+    maxFiles: 200, // 100 products = 200 files (or 100 single files for single-file categories)
   })
 
   const removePair = (pairId: string) => {
@@ -85,9 +92,13 @@ export function FileUpload({ onPairsChange, onErrorsChange }: FileUploadProps) {
             {isDragActive ? "Drop files here" : "Drag & drop files here"}
           </p>
           <p className="text-sm text-muted-foreground mt-2 text-center max-w-xs">
-            Upload pairs of images and download files.
+            {category && (category.name === "IMAGES" || category.name === "MOTION LIBRARY")
+              ? "Upload images or videos (one file per product)."
+              : "Upload pairs of images and download files."}
             <br />
-            (Max 100 products = 200 files)
+            {category && (category.name === "IMAGES" || category.name === "MOTION LIBRARY")
+              ? "(Max 100 files)"
+              : "(Max 100 products = 200 files)"}
           </p>
         </div>
 
@@ -103,15 +114,20 @@ export function FileUpload({ onPairsChange, onErrorsChange }: FileUploadProps) {
 
         <GoogleDrivePicker
           onFilesSelected={(files) => {
-            // Process Google Drive files same as local uploads
+            // Process Google Drive files same as local uploads (with category context)
             const { pairs: newPairs, unmatched: newUnmatched, errors: newErrors } =
-              pairFiles(files)
+              pairFiles(files, category || null)
 
-            const validation = validatePairs(newPairs)
+            const validation = validatePairs(newPairs, category || null, newUnmatched)
 
             if (!validation.valid) {
               setErrors([validation.error || "Validation failed", ...newErrors])
               onErrorsChange([validation.error || "Validation failed", ...newErrors])
+              // Don't set pairs if validation fails
+              setPairs([])
+              setUnmatched(newUnmatched)
+              onPairsChange([])
+              return
             } else {
               setErrors(newErrors)
               onErrorsChange(newErrors)
@@ -168,7 +184,7 @@ export function FileUpload({ onPairsChange, onErrorsChange }: FileUploadProps) {
                 Ready for Import
               </h3>
               <Badge variant="secondary" className="text-sm px-3 py-1">
-                {pairs.length} / 100 Pairs
+                {pairs.length} / 100 {category && (category.name === "IMAGES" || category.name === "MOTION LIBRARY") ? "Files" : "Pairs"}
               </Badge>
             </div>
 
@@ -194,13 +210,17 @@ export function FileUpload({ onPairsChange, onErrorsChange }: FileUploadProps) {
 
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-1.5 rounded">
-                      <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider">IMG</span>
+                      <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider">
+                        {pair.imageFile.type.startsWith("video/") ? "VID" : "IMG"}
+                      </span>
                       <span className="truncate">{pair.imageFile.name}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-1.5 rounded">
-                      <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider">FILE</span>
-                      <span className="truncate">{pair.downloadFile.name}</span>
-                    </div>
+                    {pair.downloadFile && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-1.5 rounded">
+                        <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider">FILE</span>
+                        <span className="truncate">{pair.downloadFile.name}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
