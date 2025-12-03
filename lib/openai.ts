@@ -18,9 +18,9 @@ export async function generateProductMetadata(
                     - Image URL: ${imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`}
 
                     Generate:
-                    1. A compelling product name (max 80 characters, no special characters except - and _)
-                    2. A concise product description (50-100 words, SEO-optimized)
-                    3. 5-10 relevant keywords (comma-separated, related to the product and category)
+                    1. A compelling product name (max 50 characters, no special characters except - and _)
+                    2. A concise product description (20-50 words, SEO-optimized)
+                    3. 4-8 relevant keywords (comma-separated, related to the product and category)
 
                     Return ONLY a valid JSON object in this exact format:
                     {

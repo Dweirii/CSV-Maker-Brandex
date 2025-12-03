@@ -111,16 +111,14 @@ export default function Home() {
         }
       })()
 
-      // Upload with concurrency pool
       const processedPairs = await mapWithConcurrency(
         pairs,
-        concurrencyLimit, // Dynamic concurrency
+        concurrencyLimit,
         async (pair: FilePair) => {
           try {
             console.log(`Starting upload for pair: ${pair.baseName}`)
 
             if (isSingleFile) {
-              // For single-file categories, upload once and use same URL for both preview and download
               const fileUrl = await uploadFileWithRetry(pair.imageFile, "images")
                 .then((url) => {
                   updateProgress()
