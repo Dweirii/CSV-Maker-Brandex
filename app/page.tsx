@@ -43,6 +43,30 @@ export default function Home() {
     return data.url
   }
 
+  // Upload file with retry logic for resilience
+  const uploadFileWithRetry = async (
+    file: File,
+    folder: "images" | "downloads",
+    retries = 2
+  ): Promise<string> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await uploadFile(file, folder)
+      } catch (error) {
+        if (attempt === retries) {
+          throw error // Last attempt failed, throw the error
+        }
+        // Exponential backoff: wait 1s, 2s, 4s...
+        const delay = 1000 * Math.pow(2, attempt)
+        console.log(
+          `Upload attempt ${attempt + 1} failed for ${file.name}, retrying in ${delay}ms...`
+        )
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+    throw new Error("Upload failed after retries")
+  }
+
   const handleStartImport = async () => {
     if (pairs.length === 0) {
       toast.error("Please upload files first")
@@ -59,7 +83,6 @@ export default function Home() {
     setCsvContent(null)
 
     try {
-      // Step 1: Upload all files to BunnyCDN
       const isSingleFile = isSingleFileCategory(category)
       const totalFiles = isSingleFile ? pairs.length : pairs.length * 2 // Single file per product or 2 files per pair
       
@@ -78,17 +101,27 @@ export default function Home() {
         )
       }
 
-      // Upload with concurrency pool (always keeps 5 uploads active)
+      const concurrencyLimit = (() => {
+        if (isSingleFile && category?.name === "IMAGES") {
+          return 25 
+        } else if (isSingleFile) {
+          return 15
+        } else {
+          return 8 
+        }
+      })()
+
+      // Upload with concurrency pool
       const processedPairs = await mapWithConcurrency(
         pairs,
-        5, // Concurrency limit
+        concurrencyLimit, // Dynamic concurrency
         async (pair: FilePair) => {
           try {
             console.log(`Starting upload for pair: ${pair.baseName}`)
 
             if (isSingleFile) {
               // For single-file categories, upload once and use same URL for both preview and download
-              const fileUrl = await uploadFile(pair.imageFile, "images")
+              const fileUrl = await uploadFileWithRetry(pair.imageFile, "images")
                 .then((url) => {
                   updateProgress()
                   return url
@@ -119,7 +152,7 @@ export default function Home() {
               }
 
               const [imageUrl, downloadUrl] = await Promise.all([
-                uploadFile(pair.imageFile, "images")
+                uploadFileWithRetry(pair.imageFile, "images")
                   .then((url) => {
                     updateProgress()
                     return url
@@ -128,7 +161,7 @@ export default function Home() {
                     console.error(`Image upload failed for ${pair.imageFile.name}:`, error)
                     throw new Error(`Image upload failed: ${error.message}`)
                   }),
-                uploadFile(pair.downloadFile, "downloads")
+                uploadFileWithRetry(pair.downloadFile, "downloads")
                   .then((url) => {
                     updateProgress()
                     return url
