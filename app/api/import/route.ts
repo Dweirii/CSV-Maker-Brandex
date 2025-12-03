@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { inngest } from "@/lib/inngest"
+import { setJobInput } from "@/lib/job-store"
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,13 +16,19 @@ export async function POST(req: NextRequest) {
 
     const jobId = crypto.randomUUID()
 
+    // Store the pairs data in job store to avoid large event payload
+    // Inngest has a size limit (~256KB), so we store data separately
+    setJobInput(jobId, {
+      pairs,
+      categoryId,
+      categoryName,
+    })
+
+    // Send only the jobId in the event (much smaller payload)
     await inngest.send({
       name: "bulk.import",
       data: {
-        jobId,
-        pairs, // Already uploaded to BunnyCDN, contains URLs
-        categoryId,
-        categoryName,
+        jobId, // Only send the job ID, not the entire pairs array
       },
     })
 

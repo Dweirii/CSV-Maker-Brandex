@@ -1,6 +1,7 @@
 import { inngest } from "@/lib/inngest"
 import { generateProductMetadata } from "@/lib/openai"
 import { generateCSV } from "@/lib/csv-generator"
+import { getJobInput } from "@/lib/job-store"
 import type { ProductData } from "@/types"
 import { mapWithConcurrency } from "@/lib/concurrency"
 
@@ -8,20 +9,7 @@ interface BulkImportEvent {
   name: "bulk.import"
   data: {
     jobId: string
-    pairs: Array<{
-      id: string
-      baseName: string
-      imageFile: {
-        name: string
-        url: string
-      }
-      downloadFile: {
-        name: string
-        url: string
-      }
-    }>
-    categoryId: string
-    categoryName: string
+    // pairs, categoryId, categoryName are now fetched from job store
   }
 }
 
@@ -29,7 +17,18 @@ export const bulkImportProducts = inngest.createFunction(
   { id: "bulk-import-products", name: "Bulk Import Products" },
   { event: "bulk.import" },
   async ({ event, step }) => {
-    const { pairs, categoryId, categoryName, jobId } = event.data
+    const { jobId } = event.data
+
+    // Fetch the input data from job store (to avoid large event payloads)
+    const jobInput = await step.run("fetch-job-input", async () => {
+      const input = getJobInput(jobId)
+      if (!input) {
+        throw new Error(`Job input not found for jobId: ${jobId}`)
+      }
+      return input
+    })
+
+    const { pairs, categoryId, categoryName } = jobInput
 
     // Files are already uploaded, we just use the URLs
     const uploadResults = await step.run("validate-urls", async () => {
