@@ -3,16 +3,14 @@ import type { FilePair, Category } from "@/types"
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"]
 const VIDEO_EXTENSIONS = ["mp4", "mov", "avi", "webm", "mkv", "m4v"]
 
-// Categories that don't require pairing (single file per product, preview = download)
 const SINGLE_FILE_CATEGORY_IDS = [
   "6214c586-a7c7-4f71-98ab-e1bc147a07f4", // IMAGES
   "c302954a-6cd2-43a7-9916-16d9252f754c", // MOTION LIBRARY
 ]
 
-// File limits per category
 const IMAGES_CATEGORY_ID = "6214c586-a7c7-4f71-98ab-e1bc147a07f4"
-const IMAGES_MAX_FILES = 1000 // Higher limit for IMAGES category
-const DEFAULT_MAX_FILES = 100 // Default limit for other categories
+const IMAGES_MAX_FILES = 5000
+const DEFAULT_MAX_FILES = 100
 
 export function isSingleFileCategory(category: Category | null): boolean {
   if (!category) return false
@@ -65,10 +63,8 @@ export function pairFiles(
 
   const isSingleFile = isSingleFileCategory(category)
 
-  // For single-file categories, each file is its own product
   if (isSingleFile) {
     for (const file of files) {
-      // Only accept image or video files for single-file categories
       if (!isMediaFile(file.name)) {
         unmatched.push(file)
         errors.push(`File "${file.name}" is not an image or video file`)
@@ -79,15 +75,12 @@ export function pairFiles(
         id: crypto.randomUUID(),
         baseName: getBaseName(file.name),
         imageFile: file,
-        // downloadFile is undefined for single-file categories
       })
     }
 
     return { pairs, unmatched, errors }
   }
 
-  // Original pairing logic for categories that need pairs
-  // Group files by base name
   const fileGroups = new Map<string, { images: File[]; downloads: File[] }>()
 
   for (const file of files) {
@@ -107,7 +100,6 @@ export function pairFiles(
     }
   }
 
-  // Create pairs
   for (const [baseName, group] of fileGroups.entries()) {
     if (group.images.length === 0) {
       unmatched.push(...group.downloads)
@@ -133,7 +125,6 @@ export function pairFiles(
       continue
     }
 
-    // Perfect pair!
     pairs.push({
       id: crypto.randomUUID(),
       baseName,
@@ -167,7 +158,6 @@ export function validatePairs(
 
   const isSingleFile = isSingleFileCategory(category)
 
-  // For single-file categories: reject if there are unmatched files (only single files allowed)
   if (isSingleFile) {
     if (unmatched.length > 0) {
       return {
@@ -175,7 +165,7 @@ export function validatePairs(
         error: `This category only accepts single image or video files. ${unmatched.length} file(s) were rejected.`,
       }
     }
-    // Validate that all pairs have no downloadFile
+
     const invalidPairs = pairs.filter((p) => p.downloadFile !== undefined)
     if (invalidPairs.length > 0) {
       return {
@@ -184,14 +174,12 @@ export function validatePairs(
       }
     }
   } else {
-    // For paired categories: reject if there are unmatched files (all files must be paired)
     if (unmatched.length > 0) {
       return {
         valid: false,
         error: `This category requires paired files (image + download). ${unmatched.length} file(s) could not be paired and were rejected.`,
       }
     }
-    // Validate that all pairs have downloadFile
     const invalidPairs = pairs.filter((p) => !p.downloadFile)
     if (invalidPairs.length > 0) {
       return {

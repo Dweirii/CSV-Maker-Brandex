@@ -5,9 +5,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 })
 
-/**
- * Generate product metadata using OpenAI GPT-4
- */
 export async function generateProductMetadata(
   imageUrl: string,
   downloadFileName: string,
@@ -101,9 +98,6 @@ export async function generateProductMetadata(
   }
 }
 
-/**
- * Generate metadata for multiple products in batch
- */
 export async function generateMetadataBatch(
   items: Array<{
     imageUrl: string
